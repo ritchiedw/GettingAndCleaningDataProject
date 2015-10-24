@@ -1,49 +1,34 @@
+# This function takes the supplied datasets and formats them into merged tidy data for
+# downstream analysis.
+#
+# Reads Features
+# Reads and merges test and train dataset
+# creates complete features of dataset
+# sets meaningful column names of dataset
+# filters columns we are interested in (mean and standard deviation)
+# replaces numeric activity column with textual representation
+# groups and summarizes data
+# outputs data
+
+
 runAnalysis <- function() {
+  #main function which controls all activities
   loadLibrary()
   
   featureNames <- readFeaturesDataset()
-  filteredFeatureNames <- filterFeaturesDataset(featureNames)
   
-  print("Load Datasets")
   testDataset <- readTestDatasets()
   trainDataset <- readTrainDatasets()
-  
-  print("Create OutputDataset")
   outputDataset <- rbind(testDataset, trainDataset)
   
-  print("allFeatures")
   allFeatures <- c("subject", "activity", as.vector(featureNames))
   setnames(outputDataset, allFeatures)
   
-  print("processDT")
+  filteredFeatureNames <- filterFeaturesDataset(featureNames)
   processDT <- select(outputDataset, one_of(c("subject", "activity", as.vector(filteredFeatureNames))))
  
-  print("process replacementColumn")
-  replacementColumn <- vector("character")
-  for(i in 1:nrow(processDT)) {
-    if(processDT[i,activity] == 1) {
-      replacementColumn[i] <- "WALKING"
-    } 
-    if(processDT[i,activity] == 2) {
-      replacementColumn[i] <- "WALKING_UPSTAIRS"
-    } 
-    if(processDT[i,activity] == 3) {
-      replacementColumn[i] <- "WALKING_DOWNSTAIRS"
-    } 
-    if(processDT[i,activity] == 4) {
-      replacementColumn[i] <- "SITTING"
-    } 
-    if(processDT[i,activity] == 5) {
-      replacementColumn[i] <- "STANDING"
-    }
-    if(processDT[i,activity] == 6) {
-      replacementColumn[i] <- "LAYING"
-    }
-  }
+  processDT <- replaceActivityColumn(processDT)
   
-  print("replace column")
-  processDT[,2] <- replacementColumn
- 
   subjectActivity <- group_by(processDT, subject, activity)
   outputDetails <- summarise_each(subjectActivity, funs(mean))
   finalOutput <- arrange(outputDetails, subject)
@@ -67,7 +52,7 @@ readFeaturesDataset <- function() {
 }
 
 filterFeaturesDataset <- function(featureNames) {
-  
+  #Filter the columns we require
   meanFeatures <- grep("mean\\(", featureNames, value = TRUE)
   stdFeatures <- grep("-std", featureNames, value = TRUE)
   filterFeatureNames <- c(meanFeatures, stdFeatures)
@@ -91,4 +76,34 @@ readTrainDatasets <- function() {
   xTrain <- read.table("X_train.txt")
   trainDataset <- data.table(cbind(subjectTrain), cbind(yTrain), cbind(xTrain))
   return(trainDataset)
+}
+
+replaceActivityColumn <- function(processDT) {
+  #create a vector of textual representations of activity based on the DT
+  #replace the numeric activity column with the textual one
+  replacementColumn <- vector("character")
+  for(i in 1:nrow(processDT)) {
+    if(processDT[i,activity] == 1) {
+      replacementColumn[i] <- "WALKING"
+    } 
+    if(processDT[i,activity] == 2) {
+      replacementColumn[i] <- "WALKING_UPSTAIRS"
+    } 
+    if(processDT[i,activity] == 3) {
+      replacementColumn[i] <- "WALKING_DOWNSTAIRS"
+    } 
+    if(processDT[i,activity] == 4) {
+      replacementColumn[i] <- "SITTING"
+    } 
+    if(processDT[i,activity] == 5) {
+      replacementColumn[i] <- "STANDING"
+    }
+    if(processDT[i,activity] == 6) {
+      replacementColumn[i] <- "LAYING"
+    }
+  }
+  
+  processDT[,2] <- replacementColumn
+  return(processDT)
+  
 }

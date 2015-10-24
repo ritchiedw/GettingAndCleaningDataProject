@@ -1,5 +1,2 @@
-*.txt
-/test
-/train
 .RData
 .RHistory
